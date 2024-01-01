@@ -35,7 +35,7 @@
 void PendingScreenChanges::queueAll() {
 	_changes |= kAll;
 
-	if (_manager->_tt)
+	if (_manager->_tt || _manager->_ctpci)
 		_changes &= ~kAspectRatioCorrection;
 }
 
@@ -97,7 +97,7 @@ void PendingScreenChanges::applyAfterVblLock(const Screen &screen) {
 }
 
 void PendingScreenChanges::processAspectRatioCorrection(const Screen &screen) {
-	assert(!_manager->_tt);
+	assert(!_manager->_tt && !_manager->_ctpci);
 	assert(_mode != -1);
 
 	if (_manager->_aspectRatioCorrection && _manager->_currentState.height == 200 && !_manager->isOverlayVisible()) {

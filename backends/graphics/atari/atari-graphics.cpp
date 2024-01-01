@@ -69,6 +69,7 @@ static void shrinkVidelVisibleArea() {
 }
 
 static bool s_tt;
+static bool s_ctpci;
 static int s_shakeXOffset;
 static int s_shakeYOffset;
 static int s_aspectRatioCorrectionYOffset;
@@ -213,10 +214,10 @@ AtariGraphicsManager::AtariGraphicsManager()
 	Getcookie(C__VDO, &vdo);
 	vdo >>= 16;
 
-	_tt = (vdo == VDO_TT);
-	s_tt = _tt;
+	s_tt = _tt = (vdo == VDO_TT);
+	s_ctpci = _ctpci = (vdo == VDO_FALCON && Getcookie(C_CT60, NULL) == C_FOUND && Getcookie(C__PCI, NULL) == C_FOUND);
 
-	if (!_tt)
+	if (!_tt && !_ctpci)
 		_vgaMonitor = VgetMonitor() == MON_VGA;
 
 	// no BDF scaling please
@@ -294,7 +295,7 @@ AtariGraphicsManager::AtariGraphicsManager()
 
 	allocateSurfaces();
 
-	if (!Supexec(InstallVblHandler)) {
+	if (!_ctpci && !Supexec(InstallVblHandler)) {
 		error("VBL handler was not installed");
 	}
 
@@ -319,7 +320,7 @@ bool AtariGraphicsManager::hasFeature(OSystem::Feature f) const {
 	switch (f) {
 	case OSystem::Feature::kFeatureAspectRatioCorrection:
 		//debug("hasFeature(kFeatureAspectRatioCorrection): %d", !_tt);
-		return !_tt;
+		return !_tt && !_ctpci;
 	case OSystem::Feature::kFeatureCursorPalette:
 		// FIXME: pretend to have cursor palette at all times, this function
 		// can get (and it is) called any time, before and after showOverlay()
@@ -722,6 +723,9 @@ void AtariGraphicsManager::updateScreen() {
 void AtariGraphicsManager::setShakePos(int shakeXOffset, int shakeYOffset) {
 	//debug("setShakePos: %d, %d", shakeXOffset, shakeYOffset);
 
+	if (_ctpci)
+		return;
+
 	if (_tt) {
 		// as TT can't horizontally shake anything, do it at least vertically
 		s_shakeYOffset = (shakeYOffset == 0 && shakeXOffset != 0) ? shakeXOffset : shakeYOffset;
@@ -1068,9 +1072,9 @@ Common::Keymap *AtariGraphicsManager::getKeymap() const {
 
 void AtariGraphicsManager::allocateSurfaces() {
 	for (int i : { kFrontBuffer, kBackBuffer1, kBackBuffer2 }) {
-		_screen[i] = new Screen(_tt, getMaximumScreenWidth(), getMaximumScreenHeight(), PIXELFORMAT_CLUT8, &_palette);
+		_screen[i] = new Screen(_tt, _ctpci, getMaximumScreenWidth(), getMaximumScreenHeight(), PIXELFORMAT_CLUT8, &_palette);
 	}
-	_screen[kOverlayBuffer] = new Screen(_tt, getOverlayWidth(), getOverlayHeight(), getOverlayFormat(), &_overlayPalette);
+	_screen[kOverlayBuffer] = new Screen(_tt, _ctpci, getOverlayWidth(), getOverlayHeight(), getOverlayFormat(), &_overlayPalette);
 	// initial position
 	_screen[kOverlayBuffer]->cursor.setPosition(getOverlayWidth() / 2, getOverlayHeight() / 2);
 
@@ -1081,7 +1085,8 @@ void AtariGraphicsManager::allocateSurfaces() {
 
 void AtariGraphicsManager::freeSurfaces() {
 	for (int i : { kFrontBuffer, kBackBuffer1, kBackBuffer2, kOverlayBuffer }) {
-		delete _screen[i];
+		if (!_ctpci)	// TODO
+			delete _screen[i];
 		_screen[i] = nullptr;
 	}
 

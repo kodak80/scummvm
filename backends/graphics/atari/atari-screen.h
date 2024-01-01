@@ -58,7 +58,7 @@ private:
 struct Screen {
 	using DirtyRects = std::unordered_set<Common::Rect>;
 
-	Screen(bool tt, int width, int height, const Graphics::PixelFormat &format, const Palette *palette);
+	Screen(bool tt, bool ctpci, int width, int height, const Graphics::PixelFormat &format, const Palette *palette);
 
 	void reset(int width, int height, const Graphics::Surface &boundingSurf);
 	// must be called before any rectangle drawing
@@ -93,6 +93,7 @@ private:
 	};
 
 	bool _tt;
+	bool _ctpci;
 	Common::ScopedPtr<AtariSurface> _offsettedSurf;
 };
 

@@ -47,15 +47,24 @@ public:
 	bool getFeatureState(OSystem::Feature f) const override;
 
 	const OSystem::GraphicsMode *getSupportedGraphicsModes() const override {
-		static const OSystem::GraphicsMode graphicsModes[] = {
-			{ "direct", "Direct rendering", kDirectRendering },
-			{ "single", "Single buffering", kSingleBuffering },
-			{ "triple", "Triple buffering", kTripleBuffering },
-			{ nullptr, nullptr, 0 }
-		};
-		return graphicsModes;
+		if (_ctpci) {
+			static const OSystem::GraphicsMode graphicsModes[] = {
+				{ "direct", "Direct rendering", kDirectRendering },
+				{ "single", "Single buffering", kSingleBuffering },
+				{ nullptr, nullptr, 0 }
+			};
+			return graphicsModes;
+		} else {
+			static const OSystem::GraphicsMode graphicsModes[] = {
+				{ "direct", "Direct rendering", kDirectRendering },
+				{ "single", "Single buffering", kSingleBuffering },
+				{ "triple", "Triple buffering", kTripleBuffering },
+				{ nullptr, nullptr, 0 }
+			};
+			return graphicsModes;
+		}
 	}
-	int getDefaultGraphicsMode() const override { return kTripleBuffering; }
+	int getDefaultGraphicsMode() const override { return _ctpci ? kSingleBuffering : kTripleBuffering; }
 	bool setGraphicsMode(int mode, uint flags = OSystem::kGfxModeNoFlags) override;
 	int getGraphicsMode() const override { return _currentState.mode; }
 
@@ -156,6 +165,7 @@ private:
 
 	bool _vgaMonitor = true;
 	bool _tt = false;
+	bool _ctpci = false;
 
 	struct GraphicsState {
 		GraphicsState()

@@ -289,6 +289,7 @@ static long hasSvRamBoosted() {
 #endif	// USE_SUPERVIDEL
 
 void AtariSurfaceInit() {
+	// if (Getcookie(C_CT60, NULL) == 0 && Getcookie(C__PCI, NULL) == 0)
 #ifdef USE_SUPERVIDEL
 	g_hasSuperVidel = Getcookie(C_SupV, NULL) == C_FOUND && VgetMonitor() == MON_VGA;
 

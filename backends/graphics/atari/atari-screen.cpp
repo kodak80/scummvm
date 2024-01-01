@@ -29,9 +29,9 @@
 #include "atari-supervidel.h"	// g_hasSuperVidel
 //#include "common/debug.h"
 
-Screen::Screen(bool tt, int width, int height, const Graphics::PixelFormat &format, const Palette *palette_)
+Screen::Screen(bool tt, bool ctpci, int width, int height, const Graphics::PixelFormat &format, const Palette *palette_)
 	: palette(palette_)
-	, _tt(tt) {
+	, _tt(tt), _ctpci(ctpci) {
 
 #ifdef USE_SUPERVIDEL
 	if (g_hasSuperVidel) {
@@ -44,7 +44,7 @@ Screen::Screen(bool tt, int width, int height, const Graphics::PixelFormat &form
 #endif
 	{
 		surf.reset(new AtariSurface(
-			width + (_tt ? 0 : 2 * MAX_HZ_SHAKE),
+			width + (_tt || _cptci ? 0 : 2 * MAX_HZ_SHAKE),
 			height + 2 * MAX_V_SHAKE,
 			format));
 		_offsettedSurf.reset(new AtariSurface());
@@ -88,7 +88,8 @@ void Screen::reset(int width, int height, const Graphics::Surface &boundingSurf)
 		if (VgetMonitor() == MON_VGA) {
 			mode |= VGA | (bitsPerPixel == 4 ? BPS4 : (g_hasSuperVidel ? BPS8C : BPS8));
 
-			if (width <= 320 && height <= 240) {
+			// CTPCI doesn't know 320x240, unfortunately :-/
+			if (!_ctpci && width <= 320 && height <= 240) {
 				surf->w = 320;
 				surf->h = 240;
 				mode |= VERTFLAG | COL40;
@@ -119,8 +120,11 @@ void Screen::reset(int width, int height, const Graphics::Surface &boundingSurf)
 			}
 		}
 
-		surf->w += 2 * MAX_HZ_SHAKE;
-		surf->h += 2 * MAX_V_SHAKE;
+		// no shaking for CTPCI (yet, in the future perhaps using the blit functions)
+		if (!_ctpci) {
+			surf->w += 2 * MAX_HZ_SHAKE;
+			surf->h += 2 * MAX_V_SHAKE;
+		}
 		surf->pitch = surf->w * bitsPerPixel / 8;
 	}
 
