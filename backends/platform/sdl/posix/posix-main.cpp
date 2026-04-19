@@ -25,6 +25,13 @@
 
 #include "backends/platform/sdl/posix/posix.h"
 #include "backends/plugins/sdl/sdl-provider.h"
+#if defined(DYNAMIC_MODULES) && defined(__MINT__)
+#ifdef __mcoldfire__
+#include "backends/plugins/firebee/firebee-provider.h"
+#else
+#include "backends/plugins/atari/atari-provider.h"
+#endif
+#endif
 #include "base/main.h"
 
 int main(int argc, char *argv[]) {
@@ -37,7 +44,15 @@ int main(int argc, char *argv[]) {
 	g_system->init();
 
 #ifdef DYNAMIC_MODULES
+#ifdef __MINT__
+#ifdef __mcoldfire__
+	PluginManager::instance().addPluginProvider(new FireBeePluginProvider());
+#else
+	PluginManager::instance().addPluginProvider(new AtariPluginProvider());
+#endif
+#else
 	PluginManager::instance().addPluginProvider(new SDLPluginProvider());
+#endif
 #endif
 
 	// Invoke the actual ScummVM main entry point:

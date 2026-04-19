@@ -8,6 +8,7 @@ cd build-firebee
 
 PLATFORM=m68k-atari-mintelf
 FASTCALL=false
+PLUGINS=true
 export CXXFLAGS="-mcpu=5475"
 export LDFLAGS="-mcpu=5475"
 #export CXXFLAGS="-m68020-60"
@@ -30,6 +31,13 @@ then
 fi
 
 
+if $PLUGINS
+then
+	PLUGINS_FLAGS="--enable-plugins --default-dynamic --enable-detection-dynamic"
+else
+	PLUGINS_FLAGS=""
+fi
+
 if [ ! -f config.log ]
 then
 ../configure \
@@ -39,7 +47,8 @@ then
 	--with-freetype2-prefix="$(${PLATFORM}-gcc -print-sysroot)/usr/bin/${CPU_DIR}" \
 	--with-mikmod-prefix="$(${PLATFORM}-gcc -print-sysroot)/usr/bin/${CPU_DIR}" \
 	--enable-release \
-	--enable-verbose-build
+	--enable-verbose-build \
+	${PLUGINS_FLAGS}
 fi
 
 make -j$(getconf _NPROCESSORS_CONF) fbdist

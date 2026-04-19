@@ -239,6 +239,11 @@ endif
 ifndef RISCOS
 ifndef KOLIBRIOS
 MODULE_OBJS += plugins/sdl/sdl-provider.o
+# Atari/FireBee SDL doesn't have a separate backend (perhaps it should...)
+ifdef USE_ELF_LOADER
+MODULE_OBJS += plugins/atari/atari-provider.o
+MODULE_OBJS += plugins/firebee/firebee-provider.o
+endif
 endif
 endif
 

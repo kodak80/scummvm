@@ -24,7 +24,7 @@
 
 #include "base/plugins.h"
 
-#if defined(DYNAMIC_MODULES) && defined(SDL_BACKEND)
+#if defined(DYNAMIC_MODULES) && defined(SDL_BACKEND) && !defined(__MINT__)
 
 class SDLPluginProvider : public FilePluginProvider {
 protected:
