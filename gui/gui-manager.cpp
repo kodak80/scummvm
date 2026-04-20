@@ -408,19 +408,28 @@ void GuiManager::redrawInternalTopDialogOnly() {
 			}
 			break;
 
-		case kRedrawTooltip:
-
-			// copy everything to screen and render the top dialog foreground
+		case kRedrawTooltip: {
+			// Restore the area under the tooltip from the backbuffer, then
+			// redraw the top dialog's foreground within that rect only. The
+			// clip is pinned to the tooltip rect so widget draws outside it
+			// are culled, keeping work proportional to the tooltip size.
 			_theme->drawToScreen();
-			_theme->copyBackBufferToScreen();
+			_theme->copyBackBufferToScreen(_tooltipRect);
 
+			Common::Rect oldClip = _theme->swapClipRect(_tooltipRect);
+			_theme->lockClipRect(true);
 			_dialogStack.top()->drawDialog(kDrawLayerForeground);
+			_theme->lockClipRect(false);
+			_theme->swapClipRect(oldClip);
 
 			if (_tooltip) {
 				// There is no background for tooltips as we never save them in backbuffer
 				_tooltip->drawDialog(kDrawLayerForeground);
 			}
+
+			_theme->addDirtyRect(_tooltipRect);
 			break;
+		}
 
 		default:
 			// Redraw only the widgets that are marked as dirty on screen
@@ -487,20 +496,28 @@ void GuiManager::redrawInternal() {
 			}
 			break;
 
-		case kRedrawTooltip:
-
-			// copy everything to screen and render the top dialog foreground
+		case kRedrawTooltip: {
+			// Restore the area under the tooltip from the backbuffer, then
+			// redraw the top dialog's foreground within that rect only. The
+			// clip is pinned to the tooltip rect so widget draws outside it
+			// are culled, keeping work proportional to the tooltip size.
 			_theme->drawToScreen();
-			_theme->copyBackBufferToScreen();
-			_theme->addDirtyRect(Common::Rect(0, 0, g_system->getOverlayWidth(), g_system->getOverlayHeight()));
+			_theme->copyBackBufferToScreen(_tooltipRect);
 
+			Common::Rect oldClip = _theme->swapClipRect(_tooltipRect);
+			_theme->lockClipRect(true);
 			_dialogStack.top()->drawDialog(kDrawLayerForeground);
+			_theme->lockClipRect(false);
+			_theme->swapClipRect(oldClip);
 
 			if (_tooltip) {
 				// There is no background for tooltips as we never save them in backbuffer
 				_tooltip->drawDialog(kDrawLayerForeground);
 			}
+
+			_theme->addDirtyRect(_tooltipRect);
 			break;
+		}
 
 		default:
 			// Redraw only the widgets that are marked as dirty on screen
@@ -768,6 +785,10 @@ void GuiManager::openDialog(Dialog *dialog) {
 		_dialogStack.top()->lostFocus();
 
 	if (dialog == _tooltip) {
+		// Cache the tooltip's extended draw rect so closeTopDialog can use
+		// it to restore just that area from the backbuffer.
+		_tooltipRect = _theme->getDrawDataExtendedRect(kDDTooltipBackground,
+			Common::Rect(_tooltip->_x, _tooltip->_y, _tooltip->_x + _tooltip->_w, _tooltip->_y + _tooltip->_h));
 		if (_redrawStatus == kRedrawDisabled)
 			_redrawStatus = kRedrawTooltip;
 	} else {

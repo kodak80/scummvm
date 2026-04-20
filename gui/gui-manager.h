@@ -211,6 +211,7 @@ protected:
 		int16 x, y;  // Position of mouse before tooltip was focused
 	} _lastTooltipShown;
 	Tooltip *_tooltip;
+	Common::Rect _tooltipRect;
 
 	// mouse cursor state
 	uint32	_cursorAnimateCounter;
