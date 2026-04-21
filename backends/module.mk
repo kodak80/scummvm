@@ -170,8 +170,10 @@ endif
 ifdef USE_ELF_LOADER
 MODULE_OBJS += \
 	plugins/elf/arm-loader.o \
+	plugins/elf/cxa-atexit.o \
 	plugins/elf/elf-loader.o \
 	plugins/elf/elf-provider.o \
+	plugins/elf/m68k-loader.o \
 	plugins/elf/memory-manager.o \
 	plugins/elf/mips-loader.o \
 	plugins/elf/ppc-loader.o \
@@ -237,6 +239,11 @@ endif
 ifndef RISCOS
 ifndef KOLIBRIOS
 MODULE_OBJS += plugins/sdl/sdl-provider.o
+# Atari/FireBee SDL doesn't have a separate backend (perhaps it should...)
+ifdef USE_ELF_LOADER
+MODULE_OBJS += plugins/atari/atari-provider.o
+MODULE_OBJS += plugins/firebee/firebee-provider.o
+endif
 endif
 endif
 
@@ -427,6 +434,10 @@ MODULE_OBJS += \
 	graphics/atari/atari-supervidel.o \
 	graphics/atari/atari-surface.o \
 	mixer/atari/atari-mixer.o
+ifdef USE_ELF_LOADER
+MODULE_OBJS += \
+	plugins/atari/atari-provider.o
+endif
 endif
 
 ifeq ($(BACKEND),ds)

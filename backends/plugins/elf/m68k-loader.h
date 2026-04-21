@@ -19,18 +19,21 @@
  *
  */
 
-#ifndef BACKENDS_PLUGINS_SDL_H
-#define BACKENDS_PLUGINS_SDL_H
+#ifndef BACKENDS_PLUGINS_M68K_LOADER_H
+#define BACKENDS_PLUGINS_M68K_LOADER_H
 
-#include "base/plugins.h"
+#include "common/scummsys.h"
 
-#if defined(DYNAMIC_MODULES) && defined(SDL_BACKEND) && !defined(__MINT__)
+#if defined(DYNAMIC_MODULES) && defined(USE_ELF_LOADER) && defined(M68K_TARGET)
 
-class SDLPluginProvider : public FilePluginProvider {
+#include "backends/plugins/elf/elf-loader.h"
+
+class M68KDLObject : public DLObject {
 protected:
-	Plugin* createPlugin(const Common::FSNode &node) const;
+	bool relocate(Elf32_Off offset, Elf32_Word size, byte *relSegment) override;
+	bool relocateRels(Elf32_Ehdr *ehdr, Elf32_Shdr *shdr) override;
 };
 
-#endif // defined(DYNAMIC_MODULES) && defined(SDL_BACKEND)
+#endif /* defined(DYNAMIC_MODULES) && defined(USE_ELF_LOADER) && defined(M68K_TARGET) */
 
-#endif
+#endif /* BACKENDS_PLUGINS_M68K_LOADER_H */

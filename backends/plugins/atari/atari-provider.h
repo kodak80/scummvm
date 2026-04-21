@@ -19,18 +19,18 @@
  *
  */
 
-#ifndef BACKENDS_PLUGINS_SDL_H
-#define BACKENDS_PLUGINS_SDL_H
+#if defined(DYNAMIC_MODULES) && defined(__MINT__) && defined(__ELF__) && !defined(__mcoldfire__)
 
-#include "base/plugins.h"
+#ifndef BACKENDS_PLUGINS_ATARI_PROVIDER_H
+#define BACKENDS_PLUGINS_ATARI_PROVIDER_H
 
-#if defined(DYNAMIC_MODULES) && defined(SDL_BACKEND) && !defined(__MINT__)
+#include "backends/plugins/elf/elf-provider.h"
 
-class SDLPluginProvider : public FilePluginProvider {
-protected:
-	Plugin* createPlugin(const Common::FSNode &node) const;
+class AtariPluginProvider final : public ELFPluginProvider {
+public:
+	Plugin *createPlugin(const Common::FSNode &node) const override;
 };
 
-#endif // defined(DYNAMIC_MODULES) && defined(SDL_BACKEND)
+#endif // BACKENDS_PLUGINS_ATARI_PROVIDER_H
 
-#endif
+#endif // defined(DYNAMIC_MODULES) && defined(__MINT__) && defined(__ELF__) && !defined(__mcoldfire__)
