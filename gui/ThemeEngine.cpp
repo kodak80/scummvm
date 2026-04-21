@@ -113,8 +113,8 @@ static const DrawDataInfo kDrawDataDefaults[] = {
 	{kDDMainDialogBackground,         "mainmenu_bg",          kDrawLayerBackground,   kDDNone},
 	{kDDSpecialColorBackground,       "special_bg",           kDrawLayerBackground,   kDDNone},
 	{kDDPlainColorBackground,         "plain_bg",             kDrawLayerBackground,   kDDNone},
-	{kDDTooltipBackground,            "tooltip_bg",           kDrawLayerBackground,   kDDNone},
 	{kDDDefaultBackground,            "default_bg",           kDrawLayerBackground,   kDDNone},
+	{kDDTooltipBackground,            "tooltip_bg",           kDrawLayerForeground,   kDDNone},
 	{kDDTextSelectionBackground,      "text_selection",       kDrawLayerForeground,  kDDNone},
 	{kDDTextSelectionFocusBackground, "text_selection_focus", kDrawLayerForeground,  kDDNone},
 	{kDDThumbnailBackground,    	  "thumb_bg",   		  kDrawLayerForeground,   kDDNone},
@@ -899,6 +899,21 @@ bool ThemeEngine::loadThemeXML(const Common::String &themeId) {
 /**********************************************************
  * Draw Date descriptors drawing functions
  *********************************************************/
+Common::Rect ThemeEngine::getDrawDataExtendedRect(DrawData type, const Common::Rect &r) const {
+	WidgetDrawData *drawData = _widgets[type];
+	if (!drawData)
+		return Common::Rect();
+
+	Common::Rect extendedRect = r;
+	extendedRect.clip(_screen.w, _screen.h);
+	extendedRect.grow(kDirtyRectangleThreshold + drawData->_backgroundOffset);
+	if (drawData->_shadowOffset > drawData->_backgroundOffset) {
+		extendedRect.right += drawData->_shadowOffset - drawData->_backgroundOffset;
+		extendedRect.bottom += drawData->_shadowOffset - drawData->_backgroundOffset;
+	}
+	return extendedRect;
+}
+
 void ThemeEngine::drawDD(DrawData type, const Common::Rect &r, uint32 dynamic, bool forceRestore) {
 	WidgetDrawData *drawData = _widgets[type];
 
@@ -911,16 +926,15 @@ void ThemeEngine::drawDD(DrawData type, const Common::Rect &r, uint32 dynamic, b
 	Common::Rect area = r;
 	area.clip(_screen.w, _screen.h);
 
-	Common::Rect extendedRect = area;
-	extendedRect.grow(kDirtyRectangleThreshold + drawData->_backgroundOffset);
-	if (drawData->_shadowOffset > drawData->_backgroundOffset) {
-		extendedRect.right += drawData->_shadowOffset - drawData->_backgroundOffset;
-		extendedRect.bottom += drawData->_shadowOffset - drawData->_backgroundOffset;
-	}
+	// An empty clip means "fully outside active clip region" (e.g. a widget
+	// whose boss clip does not intersect the tooltip clip). Cull entirely —
+	// otherwise restoreBackground() below would overwrite screen pixels at
+	// the full widget rect with backbuffer content.
+	if (_clip.isEmpty())
+		return;
 
-	if (!_clip.isEmpty()) {
-		extendedRect.clip(_clip);
-	}
+	Common::Rect extendedRect = getDrawDataExtendedRect(type, r);
+	extendedRect.clip(_clip);
 
 	// Cull the elements not in the clip rect
 	if (extendedRect.isEmpty()) {
@@ -947,6 +961,12 @@ void ThemeEngine::drawDDText(TextData type, TextColor color, const Common::Rect 
 	if (type == kTextDataNone || !_texts[type] || _layerToDraw == kDrawLayerBackground)
 		return;
 
+	// An empty clip means "fully outside active clip region" — cull entirely
+	// rather than falling through, otherwise restoreBackground() below would
+	// wipe the widget's pixels on screen without re-drawing them.
+	if (_clip.isEmpty())
+		return;
+
 	Common::Rect area = r;
 	area.clip(_screen.w, _screen.h);
 
@@ -954,15 +974,13 @@ void ThemeEngine::drawDDText(TextData type, TextColor color, const Common::Rect 
 	if (dirty.isEmpty()) dirty = area;
 	else dirty.clip(area);
 
-	if (!_clip.isEmpty()) {
-		dirty.clip(_clip);
-	}
-
-	// HACK: One small pixel should be invisible enough
-	if (dirty.isEmpty()) dirty = Common::Rect(0, 0, 1, 1);
+	Common::Rect dirtyClipped = dirty;
+	dirtyClipped.clip(_clip);
+	if (dirtyClipped.isEmpty())
+		return;
 
 	if (restoreBg)
-		restoreBackground(dirty);
+		restoreBackground(dirtyClipped);
 
 	_vectorRenderer->setFgColor(_textColors[color]->r, _textColors[color]->g, _textColors[color]->b);
 #ifdef USE_FRIBIDI
@@ -971,7 +989,7 @@ void ThemeEngine::drawDDText(TextData type, TextColor color, const Common::Rect 
 	_vectorRenderer->drawString(_texts[type]->_fontPtr, text, area, alignH, alignV, deltax, ellipsis, dirty);
 #endif
 
-	addDirtyRect(dirty);
+	addDirtyRect(dirtyClipped);
 }
 
 /**********************************************************
@@ -1503,6 +1521,14 @@ void ThemeEngine::debugWidgetPosition(const char *name, const Common::Rect &r) {
  *********************************************************/
 void ThemeEngine::copyBackBufferToScreen() {
 	memcpy(_screen.getPixels(), _backBuffer.getPixels(), (size_t)(_screen.pitch * _screen.h));
+}
+
+void ThemeEngine::copyBackBufferToScreen(const Common::Rect &r) {
+	Common::Rect clipped = r;
+	clipped.clip(_screen.w, _screen.h);
+	if (clipped.isEmpty())
+		return;
+	_screen.copyRectToSurface(_backBuffer, clipped.left, clipped.top, clipped);
 }
 
 void ThemeEngine::updateScreen() {
@@ -2265,6 +2291,8 @@ const Common::Rect ThemeEngine::getClipRect() {
 }
 
 void ThemeEngine::disableClipRect() {
+	if (_clipLocked)
+		return;
 	_clip = Common::Rect(_screen.w, _screen.h);
 }
 

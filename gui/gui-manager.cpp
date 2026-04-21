@@ -54,7 +54,7 @@ enum {
 
 // Constructor
 GuiManager::GuiManager() : CommandSender(nullptr), _redrawStatus(kRedrawDisabled), _stateIsSaved(false),
-	_cursorAnimateCounter(0), _cursorAnimateTimer(0) {
+	_cursorAnimateCounter(0), _cursorAnimateTimer(0), _tooltip(nullptr) {
 	_theme = nullptr;
 	_useStdCursor = false;
 
@@ -401,7 +401,35 @@ void GuiManager::redrawInternalTopDialogOnly() {
 			_theme->copyBackBufferToScreen();
 
 			_dialogStack.top()->drawDialog(kDrawLayerForeground);
+
+			if (_tooltip) {
+				// There is no background for tooltips as we never save them in backbuffer
+				_tooltip->drawDialog(kDrawLayerForeground);
+			}
 			break;
+
+		case kRedrawTooltip: {
+			// Restore the area under the tooltip from the backbuffer, then
+			// redraw the top dialog's foreground within that rect only. The
+			// clip is pinned to the tooltip rect so widget draws outside it
+			// are culled, keeping work proportional to the tooltip size.
+			_theme->drawToScreen();
+			_theme->copyBackBufferToScreen(_tooltipRect);
+
+			Common::Rect oldClip = _theme->swapClipRect(_tooltipRect);
+			_theme->lockClipRect(true);
+			_dialogStack.top()->drawDialog(kDrawLayerForeground);
+			_theme->lockClipRect(false);
+			_theme->swapClipRect(oldClip);
+
+			if (_tooltip) {
+				// There is no background for tooltips as we never save them in backbuffer
+				_tooltip->drawDialog(kDrawLayerForeground);
+			}
+
+			_theme->addDirtyRect(_tooltipRect);
+			break;
+		}
 
 		default:
 			// Redraw only the widgets that are marked as dirty on screen
@@ -461,7 +489,35 @@ void GuiManager::redrawInternal() {
 			_theme->copyBackBufferToScreen();
 
 			_dialogStack.top()->drawDialog(kDrawLayerForeground);
+
+			if (_tooltip) {
+				// There is no background for tooltips as we never save them in backbuffer
+				_tooltip->drawDialog(kDrawLayerForeground);
+			}
 			break;
+
+		case kRedrawTooltip: {
+			// Restore the area under the tooltip from the backbuffer, then
+			// redraw the top dialog's foreground within that rect only. The
+			// clip is pinned to the tooltip rect so widget draws outside it
+			// are culled, keeping work proportional to the tooltip size.
+			_theme->drawToScreen();
+			_theme->copyBackBufferToScreen(_tooltipRect);
+
+			Common::Rect oldClip = _theme->swapClipRect(_tooltipRect);
+			_theme->lockClipRect(true);
+			_dialogStack.top()->drawDialog(kDrawLayerForeground);
+			_theme->lockClipRect(false);
+			_theme->swapClipRect(oldClip);
+
+			if (_tooltip) {
+				// There is no background for tooltips as we never save them in backbuffer
+				_tooltip->drawDialog(kDrawLayerForeground);
+			}
+
+			_theme->addDirtyRect(_tooltipRect);
+			break;
+		}
 
 		default:
 			// Redraw only the widgets that are marked as dirty on screen
@@ -486,6 +542,8 @@ void GuiManager::redraw() {
 }
 
 Dialog *GuiManager::getTopDialog() const {
+	if (_tooltip)
+		return _tooltip;
 	if (_dialogStack.empty())
 		return nullptr;
 	return _dialogStack.top();
@@ -619,7 +677,8 @@ void GuiManager::runLoop() {
 		// 2. If the mouse was moved but ended on the same (tooltip enabled) widget,
 		//    then delay showing the tooltip based on the value of kTooltipSameWidgetDelay.
 		uint32 systemMillisNowForTooltipCheck = _system->getMillis(true);
-		if ((_lastTooltipShown.x != _lastMousePosition.x || _lastTooltipShown.y != _lastMousePosition.y)
+		if (!_tooltip
+		    && (_lastTooltipShown.x != _lastMousePosition.x || _lastTooltipShown.y != _lastMousePosition.y)
 		    && systemMillisNowForTooltipCheck - _lastMousePosition.time > (uint32)kTooltipDelay
 		    && !activeDialog->isDragging()) {
 			Widget *wdg = activeDialog->findWidget(_lastMousePosition.x, _lastMousePosition.y);
@@ -636,7 +695,9 @@ void GuiManager::runLoop() {
 					if (wdg->hasTooltip()) {
 						Tooltip *tooltip = new Tooltip();
 						tooltip->setup(activeDialog, wdg, _lastMousePosition.x, _lastMousePosition.y);
-						tooltip->runModal();
+						_tooltip = tooltip;
+						_tooltip->runModal();
+						// _tooltip is reset in closeTopDialog
 						delete tooltip;
 					}
 				}
@@ -721,15 +782,25 @@ void GuiManager::openDialog(Dialog *dialog) {
 	giveFocusToDialog(dialog);
 
 	if (!_dialogStack.empty())
-		getTopDialog()->lostFocus();
+		_dialogStack.top()->lostFocus();
 
-	_dialogStack.push(dialog);
-	// We were already ready to redraw a new dialog
-	// Redraw fully to ensure a proper draw of the whole stack
-	if (_redrawStatus == kRedrawOpenDialog)
-		_redrawStatus = kRedrawFull;
-	if (_redrawStatus != kRedrawFull)
-		_redrawStatus = kRedrawOpenDialog;
+	if (dialog == _tooltip) {
+		// Cache the tooltip's extended draw rect so closeTopDialog can use
+		// it to restore just that area from the backbuffer.
+		_tooltipRect = _theme->getDrawDataExtendedRect(kDDTooltipBackground,
+			Common::Rect(_tooltip->_x, _tooltip->_y, _tooltip->_x + _tooltip->_w, _tooltip->_y + _tooltip->_h));
+		if (_redrawStatus == kRedrawDisabled)
+			_redrawStatus = kRedrawTooltip;
+	} else {
+		_dialogStack.push(dialog);
+
+		// We were already ready to redraw a new dialog
+		// Redraw fully to ensure a proper draw of the whole stack
+		if (_redrawStatus == kRedrawOpenDialog)
+			_redrawStatus = kRedrawFull;
+		if (_redrawStatus != kRedrawFull)
+			_redrawStatus = kRedrawOpenDialog;
+	}
 
 	// We reflow the dialog just before opening it. If the screen changed
 	// since the last time we looked, also refresh the loaded theme,
@@ -740,19 +811,27 @@ void GuiManager::openDialog(Dialog *dialog) {
 
 void GuiManager::closeTopDialog() {
 	// Don't do anything if no dialog is open
-	if (_dialogStack.empty())
+	if (!_tooltip && _dialogStack.empty())
 		return;
 
-	// Remove the dialog from the stack
-	_dialogStack.pop()->lostFocus();
+	if (!_tooltip) {
+		// Remove the dialog from the stack
+		_dialogStack.pop()->lostFocus();
+	}
 
 	if (!_dialogStack.empty()) {
-		Dialog *dialog = getTopDialog();
+		Dialog *dialog = _dialogStack.top();
 		giveFocusToDialog(dialog);
 	}
 
-	if (_redrawStatus != kRedrawFull)
-		_redrawStatus = kRedrawCloseDialog;
+	if (_tooltip) {
+		_tooltip = nullptr;
+		if (_redrawStatus == kRedrawDisabled)
+			_redrawStatus = kRedrawTooltip;
+	} else {
+		if (_redrawStatus != kRedrawFull)
+			_redrawStatus = kRedrawCloseDialog;
+	}
 
 	redraw();
 }

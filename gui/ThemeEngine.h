@@ -63,8 +63,8 @@ enum DrawData {
 	kDDMainDialogBackground,
 	kDDSpecialColorBackground,
 	kDDPlainColorBackground,
-	kDDTooltipBackground,
 	kDDDefaultBackground,
+	kDDTooltipBackground,
 	kDDTextSelectionBackground,
 	kDDTextSelectionFocusBackground,
 	kDDThumbnailBackground,
@@ -413,6 +413,17 @@ public:
 	 */
 	void copyBackBufferToScreen();
 
+	/**
+	 * Copy a rectangular region of the backbuffer surface to the screen surface
+	 */
+	void copyBackBufferToScreen(const Common::Rect &r);
+
+	/**
+	 * Compute the extended (dirty) rectangle for a given draw data type applied
+	 * to the given base rect. Includes background and shadow offsets.
+	 */
+	Common::Rect getDrawDataExtendedRect(DrawData type, const Common::Rect &r) const;
+
 
 	/** @name FONT MANAGEMENT METHODS */
 	//@{
@@ -457,6 +468,14 @@ public:
 	 * Set the clipping rect to allow rendering on the whole surface.
 	 */
 	void disableClipRect();
+
+	/**
+	 * While the clip rect is locked, disableClipRect() is a no-op. This lets
+	 * callers (e.g. GuiManager when redrawing under a tooltip) pin an
+	 * external clip rect across subsequent Dialog::drawDialog calls, which
+	 * otherwise reset the clip to full screen.
+	 */
+	void lockClipRect(bool lock) { _clipLocked = lock; }
 
 	/** @name WIDGET DRAWING METHODS */
 	//@{
@@ -854,6 +873,7 @@ protected:
 	};
 
 	Common::Rect _clip;
+	bool _clipLocked = false;
 };
 
 } // End of namespace GUI.
