@@ -7,6 +7,8 @@ audio/adlib_hmisos.h
 audio/adlib_ms.cpp
 audio/adlib_ms.h
 audio/alsa_opl.cpp
+audio/atari_ym2149.cpp
+audio/atari_ym2149.h
 audio/audiostream.cpp
 audio/audiostream.h
 audio/casio.cpp
