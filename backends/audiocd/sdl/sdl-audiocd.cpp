@@ -19,9 +19,11 @@
  *
  */
 
+#define FORCE_TEXT_CONSOLE
+
 #include "common/scummsys.h"
 
-#if defined(SDL_BACKEND)
+#if defined(SDL_BACKEND) || defined(ATARI)
 
 #include "backends/audiocd/sdl/sdl-audiocd.h"
 

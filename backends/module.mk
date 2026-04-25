@@ -422,6 +422,7 @@ endif
 
 ifeq ($(BACKEND),atari)
 MODULE_OBJS += \
+	audiocd/sdl/sdl-audiocd.o \
 	events/atari/atari-events.o \
 	fs/atari/atari-fs.o \
 	fs/atari/atari-fs-factory.o \

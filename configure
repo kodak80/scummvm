@@ -4239,7 +4239,8 @@ case $_backend in
 		define_in_config_if_yes yes "USE_M68K_GFX_ASM"
 		append_var DEFINES "-DDISABLE_NES_APU"
 		#append_var DEFINES "-DDISABLE_DOSBOX_OPL"
-		append_var LIBS "-lgem"
+		append_var INCLUDES "-I$(${_host}-gcc -print-sysroot)/usr/include/SDL"
+		append_var LIBS "-lSDL -lgem"
 		_ogg=no
 		_vorbis=no
 		_tremor=no
