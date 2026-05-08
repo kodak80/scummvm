@@ -58,6 +58,7 @@
 #include "common/config-manager.h"
 #include "common/debug.h"
 
+//#define SIDECART_OUTPUT
 #define INPUT_ACTIVE
 
 /*
@@ -462,6 +463,7 @@ void OSystem_Atari::logMessage(LogMessageType::Type type, const char *message) {
 	if (nf_stderr_id) {
 		nf_print(str);
 	} else {
+#ifndef SIDECART_OUTPUT
 		FILE *output = 0;
 
 		if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
@@ -471,6 +473,11 @@ void OSystem_Atari::logMessage(LogMessageType::Type type, const char *message) {
 
 		fputs(str, output);
 		fflush(output);
+#else
+#define CARTRIDGE_ROM3 0xFB0000ul
+		for (const char *s = str; *s; s++)
+			(void)(*((volatile uint16 *)(CARTRIDGE_ROM3 + ((*s & 0xFF)<<1))));
+#endif
 	}
 }
 
