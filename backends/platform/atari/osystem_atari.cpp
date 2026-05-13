@@ -42,20 +42,20 @@
 
 #include "backends/platform/atari/osystem_atari.h"
 
-#include "backends/audiocd/default/default-audiocd.h"
-#ifdef DYNAMIC_MODULES
-#include "backends/plugins/atari/atari-provider.h"
-#endif
-#include "common/config-manager.h"
+#include "backends/audiocd/atari/atari-audiocd.h"
 #include "backends/events/atari/atari-events.h"
 #include "backends/events/default/default-events.h"
 #include "backends/graphics/atari/atari-graphics.h"
 #include "backends/keymapper/hardware-input.h"
 #include "backends/mixer/atari/atari-mixer.h"
 #include "backends/mutex/null/null-mutex.h"
+#ifdef DYNAMIC_MODULES
+#include "backends/plugins/atari/atari-provider.h"
+#endif
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
 #include "base/main.h"
+#include "common/config-manager.h"
 #include "common/debug.h"
 
 //#define SIDECART_OUTPUT
@@ -359,6 +359,8 @@ void OSystem_Atari::initBackend() {
 
 	// init() will be called upon starting a new game
 	_mixerManager = new AtariMixerManager();
+
+	_audiocdManager = new AtariAudioCDManager();
 
 	BaseBackend::initBackend();
 }
