@@ -1222,7 +1222,7 @@ void LauncherSimple::updateListing(int selPos) {
 
 		if (scanEntries) {
 			Common::String path;
-			if (!curDomain.domain->tryGetVal("path", path) || !Common::FSNode(Common::Path::fromConfig(path)).isDirectory()) {
+			if (!curDomain.domain->tryGetVal("path", path) /*|| !Common::FSNode(Common::Path::fromConfig(path)).isDirectory()*/) {
 				color = ThemeEngine::kFontColorAlternate;
 				// If more conditions which grey out entries are added we should consider
 				// enabling this so that it is easy to spot why a certain game entry cannot
@@ -1230,6 +1230,7 @@ void LauncherSimple::updateListing(int selPos) {
 
 				// description += Common::String::format(" (%s)", _("Not found"));
 			}
+			debug("checking/skipping: %s", Common::Path::fromConfig(path).toString().c_str());
 		}
 
 		bool isAddOn = curDomain.domain->contains("parent");

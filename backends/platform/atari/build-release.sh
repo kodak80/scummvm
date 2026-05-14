@@ -8,7 +8,7 @@ cd build-release
 
 PLATFORM=m68k-atari-mintelf
 FASTCALL=false
-PLUGINS=true
+PLUGINS=false
 export ASFLAGS="-m68020-60"
 export CXXFLAGS="-m68020-60 -DUSE_MOVE16 -DUSE_SUPERVIDEL -DUSE_SV_BLITTER -DDISABLE_LAUNCHERDISPLAY_GRID"
 export LDFLAGS="-m68020-60"
@@ -34,9 +34,9 @@ then
 ../configure \
 	--backend=atari \
 	--host=${PLATFORM} \
-	--enable-release \
+	--enable-optimizations \
 	--enable-verbose-build \
-	--disable-engine=hugo,director,cine,ultima,pink,wage \
+	--disable-all-engines --enable-engine=scumm,scumm-7-8 \
 	${PLUGINS_FLAGS}
 fi
 

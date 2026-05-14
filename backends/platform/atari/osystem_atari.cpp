@@ -31,6 +31,7 @@
 #include <mint/osbind.h>
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_FILE
+#define FORBIDDEN_SYMBOL_EXCEPTION_fopen
 #define FORBIDDEN_SYMBOL_EXCEPTION_fputs
 #define FORBIDDEN_SYMBOL_EXCEPTION_getenv
 #define FORBIDDEN_SYMBOL_EXCEPTION_sprintf
@@ -360,7 +361,7 @@ void OSystem_Atari::initBackend() {
 	// init() will be called upon starting a new game
 	_mixerManager = new AtariMixerManager();
 
-	_audiocdManager = new AtariAudioCDManager();
+	//_audiocdManager = new AtariAudioCDManager();
 
 	BaseBackend::initBackend();
 }
@@ -460,16 +461,28 @@ void OSystem_Atari::logMessage(LogMessageType::Type type, const char *message) {
 	static char str[1024+1];
 	snprintf(str, sizeof(str), "[%08d] %s", getMillis(), message);
 
+	// Tee every log line to debug.txt in the current working directory so that
+	// the output is also captured when running under plain TOS (no NatFeats,
+	// no host stderr console). Opened lazily on the first message and kept
+	// open for the life of the process; per-line fflush keeps the file usable
+	// even after a crash. Truncates on each run.
+	static FILE *s_logFile = nullptr;
+	static bool s_logFileTried = false;
+	if (!s_logFileTried) {
+		s_logFileTried = true;
+		s_logFile = fopen("debug.txt", "w");
+	}
+	if (s_logFile) {
+		fputs(str, s_logFile);
+		fflush(s_logFile);
+	}
+
 	if (nf_stderr_id) {
 		nf_print(str);
 	} else {
 #ifndef SIDECART_OUTPUT
-		FILE *output = 0;
-
-		if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
-			output = stdout;
-		else
-			output = stderr;
+		FILE *output = (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
+			? stdout : stderr;
 
 		fputs(str, output);
 		fflush(output);

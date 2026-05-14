@@ -275,6 +275,8 @@ audio/timestamp.cpp
 audio/timestamp.h
 audio/ym2149.cpp
 audio/ym2149.h
+backends/audiocd/atari/atari-audiocd.cpp
+backends/audiocd/atari/atari-audiocd.h
 backends/audiocd/audiocd-stream.cpp
 backends/audiocd/audiocd-stream.h
 backends/audiocd/audiocd.h
