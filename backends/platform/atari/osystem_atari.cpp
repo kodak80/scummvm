@@ -26,12 +26,16 @@
 #include <time.h>
 
 #include <gem.h>
+#include <mint/basepage.h>
 #include <mint/cookie.h>
 #include <mint/falcon.h>
 #include <mint/osbind.h>
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_FILE
 #define FORBIDDEN_SYMBOL_EXCEPTION_fopen
+#define FORBIDDEN_SYMBOL_EXCEPTION_fclose
+#define FORBIDDEN_SYMBOL_EXCEPTION_fread
+#define FORBIDDEN_SYMBOL_EXCEPTION_fseek
 #define FORBIDDEN_SYMBOL_EXCEPTION_fputs
 #define FORBIDDEN_SYMBOL_EXCEPTION_getenv
 #define FORBIDDEN_SYMBOL_EXCEPTION_sprintf
@@ -59,13 +63,15 @@
 #include "common/config-manager.h"
 #include "common/debug.h"
 
-//#define SIDECART_OUTPUT
+#define SIDECART_OUTPUT
 #define INPUT_ACTIVE
 
 /*
  * Include header files needed for the getFilesystemFactory() method.
  */
 #include "backends/fs/atari/atari-fs-factory.h"
+
+static void replayMonkey001Ops();
 
 bool g_gameEngineActive = false;
 
@@ -372,6 +378,83 @@ void OSystem_Atari::engineBeforeCreate() {
 	((AtariMixerManager *)_mixerManager)->init();
 }
 
+static void sidecart_puts(const char *s) {
+	const unsigned long CARTRIDGE_ROM3 = 0xFB0000ul;
+	for (; *s; s++)
+		(void)(*((volatile unsigned short *)(CARTRIDGE_ROM3 + ((*s & 0xFF) << 1))));
+}
+
+static void sidecart_report_free_stram(const char *prefix) {
+	char buf[80];
+	long avail = (long)Mxalloc(-1L, 0);
+	sprintf(buf, "%s: free ST-RAM=%ld bytes\n", prefix, avail);
+	sidecart_puts(buf);
+}
+
+static void sidecart_report_basepage() {
+	char buf[256];
+	BASEPAGE *bp = _base;
+	if (!bp) {
+		sidecart_puts("basepage: _base is NULL\n");
+		return;
+	}
+	sprintf(buf, "basepage=%p tpa=[%p..%p] text=%p+%lx data=%p+%lx bss=%p+%lx\n",
+	        bp,
+	        bp->p_lowtpa, bp->p_hitpa,
+	        bp->p_tbase, bp->p_tlen,
+	        bp->p_dbase, bp->p_dlen,
+	        bp->p_bbase, bp->p_blen);
+	sidecart_puts(buf);
+}
+
+static void replayMonkey001Ops() {
+	sidecart_puts("replayMonkey001Ops: starting\n");
+	sidecart_report_basepage();
+	sidecart_report_free_stram("at entry");
+
+	const char *path = "P:/MONKEY1/MONKEY.001";
+	FILE *fp = fopen(path, "rb");
+	if (!fp) {
+		sidecart_puts("replayMonkey001Ops: fopen failed\n");
+		return;
+	}
+
+	unsigned char b4[4];
+	unsigned char b1[1];
+
+	fseek(fp, 0, SEEK_SET);
+	fseek(fp, 16, SEEK_SET);
+
+	// Two initial 1-byte reads
+	fread(b1, 1, 1, fp);
+	fread(b1, 1, 1, fp);
+
+	// Then: fread(4) followed by 82 pairs of fread(1) + fread(4)
+	fread(b4, 1, 4, fp);
+	for (int i = 0; i < 82; i++) {
+		fread(b1, 1, 1, fp);
+		fread(b4, 1, 4, fp);
+	}
+
+	fseek(fp, 454529, SEEK_SET);
+	fread(b4, 1, 4, fp);
+	fread(b4, 1, 4, fp);
+	fseek(fp, -8, SEEK_CUR);
+
+	// The trailing read that hung — 2609 bytes into a fresh heap buffer
+	// (same allocation pattern the engine uses for chunk loading).
+	unsigned char *bigBuf = new unsigned char[2609];
+	sidecart_report_free_stram("before fread");
+	sidecart_puts("replayMonkey001Ops: about to fread(2609)\n");
+	size_t got = fread(bigBuf, 1, 2609, fp);
+	(void)got;
+	sidecart_puts("replayMonkey001Ops: fread returned\n");
+	delete[] bigBuf;
+
+	fclose(fp);
+	sidecart_puts("replayMonkey001Ops: ended successfully\n");
+}
+
 void OSystem_Atari::engineInit() {
 	//debug("engineInit");
 
@@ -560,6 +643,9 @@ OSystem *OSystem_Atari_create() {
 }
 
 int main(int argc, char *argv[]) {
+	replayMonkey001Ops();
+	Pterm(0);
+
 	g_system = OSystem_Atari_create();
 	assert(g_system);
 
