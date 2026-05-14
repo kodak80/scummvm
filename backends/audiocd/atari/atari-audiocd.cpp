@@ -218,8 +218,12 @@ bool AtariAudioCDManager::startPlayback(int track, int startFrame, int duration)
 	// The end MSF passed to CDROMPLAYMSF is inclusive
 	framesToMsf(endAbs - 1, playtime, false);
 
-	if (ioctl(CDROMPLAYMSF, &playtime) < 0)
+	const int ret = ioctl(CDROMPLAYMSF, &playtime);
+	if (ret < 0) {
+		warning("AtariAudioCDManager: CDROMPLAYMSF on track %d [%d, %d) failed: %s",
+			track, startAbs, endAbs, strerror(-ret));
 		return false;
+	}
 
 	const int playFrames = endAbs - startAbs;
 	_cdEndTime = g_system->getMillis() + (uint32)playFrames * 1000u / kFramesPerSecond;
