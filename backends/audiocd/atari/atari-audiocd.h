@@ -66,6 +66,10 @@ private:
 	int _numDrives;
 	int _drive;  // Index into _drives, -1 if no drive is open
 
+	// GEMDOS-to-BOS drive mapping table from metainit.info->log2phys
+	// (NULL if MetaDOS didn't supply one)
+	const char *_log2phys;
+
 	Common::Array<cdrom_tocentry> _tocEntries;  // Includes the leadout as the final entry
 
 	int _cdTrack;

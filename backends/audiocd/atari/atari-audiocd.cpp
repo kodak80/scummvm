@@ -67,6 +67,7 @@ static void framesToMsf(int frames, cdrom_msf &msf, bool start) {
 AtariAudioCDManager::AtariAudioCDManager()
 	: _numDrives(0),
 	  _drive(-1),
+	  _log2phys(nullptr),
 	  _cdTrack(0),
 	  _cdNumLoops(0),
 	  _cdStartFrame(0),
@@ -83,6 +84,9 @@ AtariAudioCDManager::AtariAudioCDManager()
 		debug(1, "AtariAudioCDManager: MetaDOS not installed");
 		return;
 	}
+
+	if (metainit.info != nullptr)
+		_log2phys = metainit.info->log2phys;
 
 	if (metainit.drives_map == 0) {
 		debug(1, "AtariAudioCDManager: no MetaDOS devices present");
@@ -308,9 +312,23 @@ bool AtariAudioCDManager::existExtractedCDAudioFiles(uint track) {
 	const char letter = (gamePath[0] >= 'a' && gamePath[0] <= 'z')
 		? (gamePath[0] - 'a' + 'A') : gamePath[0];
 
+	// Direct match (GEMDOS letter == BOS letter)
 	for (int i = 0; i < _numDrives; ++i)
 		if (_drives[i].letter == letter)
 			return true;
+
+	// GEMDOS letter resolves through MetaDOS log2phys to a BOS letter
+	// (e.g. ExtenDOS unidrive.bos with "p:z" presents BOS Z: as GEMDOS P:).
+	// log2phys[] is indexed by GEMDOS drive number (A=0..Z=25) and stores
+	// the BOS letter as a raw ASCII byte (or 0 if unmapped).
+	if (_log2phys != nullptr && letter >= 'A' && letter <= 'Z') {
+		const char bos = _log2phys[letter - 'A'];
+		if (bos >= 'A' && bos <= 'Z') {
+			for (int i = 0; i < _numDrives; ++i)
+				if (_drives[i].letter == bos)
+					return true;
+		}
+	}
 
 	return false;
 }
