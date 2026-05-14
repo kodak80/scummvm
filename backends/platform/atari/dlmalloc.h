@@ -30,6 +30,11 @@
 #define LACKS_TIME_H /* time(0) calls malloc... */
 #define MSPACES 1
 #define MALLOC_ALIGNMENT ((size_t)16U) /* 16B cache line */
+/* Don't override mintlib's malloc/free/realloc — we only need the mspace_*
+ * API for video surfaces.  Test whether dlmalloc's heap setup is what
+ * upsets the TOS-030 CD driver before the first big fread. */
+#define USE_DL_PREFIX 1
+#define ONLY_MSPACES 1
 
 #pragma GCC diagnostic push
 /* warning: 'mallinfo mallinfo()' hides constructor for 'struct mallinfo' [-Wshadow] */
