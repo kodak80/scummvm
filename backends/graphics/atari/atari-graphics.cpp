@@ -40,7 +40,7 @@
 #include "graphics/blit.h"
 #include "gui/ThemeEngine.h"
 
-#define SCREEN_ACTIVE
+//#define SCREEN_ACTIVE
 
 #define MAX_HZ_SHAKE 16 // Falcon only
 #define MAX_V_SHAKE  16
@@ -186,7 +186,7 @@ AtariGraphicsManager::AtariGraphicsManager() {
 	vdo >>= 16;
 
 	s_tt = _tt = (vdo == VDO_TT);
-	s_ctpci = _ctpci = (vdo == VDO_FALCON && Getcookie(C_CT60, NULL) == 0 && Getcookie(C__PCI, NULL) == 0);
+	s_ctpci = _ctpci = true;	//(vdo == VDO_FALCON && Getcookie(C_CT60, NULL) == 0 && Getcookie(C__PCI, NULL) == 0);
 
 	if (!_tt && !_ctpci)
 		_vgaMonitor = VgetMonitor() == MON_VGA;
@@ -551,9 +551,9 @@ void AtariGraphicsManager::updateScreen() {
 	if (_pendingScreenChange & kPendingScreenChangeMode) {
 		if (_workScreen->rez != -1) {
 			// unfortunately this reinitializes VDI, too
-			Setscreen(SCR_NOCHANGE, SCR_NOCHANGE, _workScreen->rez);
+			//Setscreen(SCR_NOCHANGE, SCR_NOCHANGE, _workScreen->rez);
 		} else if (_workScreen->mode != -1) {
-			VsetMode(_workScreen->mode);
+			//VsetMode(_workScreen->mode);
 		}
 	}
 
@@ -620,7 +620,7 @@ void AtariGraphicsManager::updateScreen() {
 					mode &= ~NTSC;
 					mode |= PAL;
 				}
-				VsetMode(mode);
+				//VsetMode(mode);
 			} else if (hasSuperVidel() || (!_tt && !_ctpci)) {
 				if (_aspectRatioCorrection) {
 					for (int screenId : { FRONT_BUFFER, BACK_BUFFER1, BACK_BUFFER2 }) {
@@ -685,9 +685,9 @@ void AtariGraphicsManager::updateScreen() {
 						screen->addDirtyRect(*lockScreen(), Common::Rect(offsettedSurf->w, offsettedSurf->h), _currentState.mode == GraphicsMode::DirectRendering);
 					}
 
-					if (hasSuperVidel())
-						VsetMode(SVEXT | SVEXT_BASERES(0) | COL80 | BPS8C);	// resync to proper 640x480
-					VsetMode(_workScreen->mode);
+					//if (hasSuperVidel())
+					//	VsetMode(SVEXT | SVEXT_BASERES(0) | COL80 | BPS8C);	// resync to proper 640x480
+					//VsetMode(_workScreen->mode);
 				}
 			} else {
 				// TODO: some tricks with TT's 480 lines?

@@ -25,9 +25,9 @@
 NullMixerManager::NullMixerManager() : MixerManager() {
 	_outputRate = 22050;
 	_callsCounter = 0;
-	_samples = 8192;
-	while (_samples * 16 > _outputRate * 2)
-		_samples >>= 1;
+	_samples = 2048;
+	//while (_samples * 16 > _outputRate * 2)
+	//	_samples >>= 1;
 	_samplesBuf = new uint8[_samples * 4];
 }
 

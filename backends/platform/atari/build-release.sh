@@ -9,7 +9,7 @@ cd build-release
 PLATFORM=m68k-atari-mintelf
 
 export ASFLAGS="-m68020-60"
-export CXXFLAGS="-m68020-60 -DUSE_MOVE16 -DUSE_SUPERVIDEL -DUSE_SV_BLITTER -DUSE_CTPCI"
+export CXXFLAGS="-m68020-60 -DUSE_MOVE16 -DUSE_CTPCI"
 export LDFLAGS="-m68020-60"
 export PKG_CONFIG_LIBDIR="$(${PLATFORM}-gcc -print-sysroot)/usr/lib/m68020-60/pkgconfig"
 
@@ -45,7 +45,7 @@ make dist-generic
 ${PLATFORM}-flags -S dist-generic/scummvm/scummvm.ttp
 
 # create symbol file and strip
-${PLATFORM}-nm -C dist-generic/scummvm/scummvm.ttp | grep -vF ' .L' | grep ' [TtWV] ' | ${PLATFORM}-c++filt | sort -u > dist-generic/scummvm/scummvm.sym
+#${PLATFORM}-nm -C dist-generic/scummvm/scummvm.ttp | grep -vF ' .L' | grep ' [TtWV] ' | ${PLATFORM}-c++filt | sort -u > dist-generic/scummvm/scummvm.sym
 ${PLATFORM}-strip -s dist-generic/scummvm/scummvm.ttp
 
 # remove unused files; absent gui-icons.dat massively speeds up startup time (used for the grid mode)
@@ -62,13 +62,13 @@ done
 )
 cd -
 
-# readme.txt
-cp ../backends/platform/atari/readme.txt dist-generic/scummvm
-unix2dos dist-generic/scummvm/readme.txt
-
-cd dist-generic
-mv scummvm scummvm-2.8.0-atari-full
-zip -r -9 scummvm-2.8.0-atari-full.zip scummvm-2.8.0-atari-full
-cd -
-
-mv dist-generic/scummvm-2.8.0-atari-full.zip ..
+# # readme.txt
+# cp ../backends/platform/atari/readme.txt dist-generic/scummvm
+# unix2dos dist-generic/scummvm/readme.txt
+# 
+# cd dist-generic
+# mv scummvm scummvm-2.8.0-atari-full
+# zip -r -9 scummvm-2.8.0-atari-full.zip scummvm-2.8.0-atari-full
+# cd -
+# 
+# mv dist-generic/scummvm-2.8.0-atari-full.zip ..

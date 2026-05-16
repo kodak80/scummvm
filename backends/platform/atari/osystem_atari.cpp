@@ -53,7 +53,7 @@
 #include "backends/graphics/atari/atari-graphics-videl.h"
 #include "backends/graphics/atari/atari-graphics.h"
 #include "backends/keymapper/hardware-input.h"
-#include "backends/mixer/atari/atari-mixer.h"
+#include "backends/mixer/null/null-mixer.h"
 #include "backends/mutex/null/null-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
@@ -87,10 +87,10 @@ static KBDVEC s_mousevec = nullptr;
 static bool exit_already_called = false;
 
 static void critical_restore() {
-	extern void AtariAudioShutdown();
+	//extern void AtariAudioShutdown();
 	extern void AtariGraphicsShutdown();
 
-	AtariAudioShutdown();
+	//AtariAudioShutdown();
 	AtariGraphicsShutdown();
 
 	if (s_tt)
@@ -126,7 +126,8 @@ static void exit_restore() {
 OSystem_Atari::OSystem_Atari() {
 	_fsFactory = new POSIXFilesystemFactory();
 
-	nf_init();
+	//nf_init();
+	fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
 	enum {
 		VDO_NO_ATARI_HW = 0xffff,
@@ -142,8 +143,8 @@ OSystem_Atari::OSystem_Atari() {
 	vdo >>= 16;
 
 	if (vdo != VDO_TT && vdo != VDO_FALCON) {
-		fprintf(stderr, "ScummVM requires Atari TT/Falcon compatible video\n");
-		exit(EXIT_FAILURE);
+		//fprintf(stderr, "ScummVM requires Atari TT/Falcon compatible video\n");
+		//exit(EXIT_FAILURE);
 	}
 
 	s_tt = (vdo == VDO_TT);
@@ -300,7 +301,7 @@ void OSystem_Atari::initBackend() {
 	else
 #endif
 #ifdef USE_CTPCI
-	if (Getcookie(C_CT60, NULL) == 0 && Getcookie(C__PCI, NULL) == 0)
+	if (true)
 		atariGraphicsManager = new AtariCtpciManager();
 	else
 #endif
@@ -324,7 +325,7 @@ void OSystem_Atari::initBackend() {
 	}
 #endif
 
-	_mixerManager = new AtariMixerManager();
+	_mixerManager = new NullMixerManager();
 	// Setup and start mixer
 	_mixerManager->init();
 
@@ -399,7 +400,7 @@ void OSystem_Atari::logMessage(LogMessageType::Type type, const char *message) {
 	fputs(str, output);
 	fflush(output);
 
-	nf_print(str);
+	//nf_print(str);
 }
 
 void OSystem_Atari::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
@@ -465,7 +466,7 @@ void OSystem_Atari::update() {
 		}
 	}
 
-	((AtariMixerManager *)_mixerManager)->update();
+	((NullMixerManager *)_mixerManager)->update();
 }
 
 OSystem *OSystem_Atari_create() {
